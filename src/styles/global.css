@@ -106,7 +106,7 @@ button {
   font-weight: 600;
   transition: 0.2s;
 }
-
+  
 .sidebar-link:hover {
   background: rgba(255, 255, 255, 0.06);
   color: white;
@@ -927,3 +927,149 @@ td strong {
   }
 }
 
+
+
+
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logout {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sidebar-logout:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+  transform: translateY(-1px);
+}
+
+.sidebar-version {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.sidebar-version p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.sidebar-version span {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+}
+
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #eef3fb;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 430px;
+  padding: 34px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.login-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2f6fed;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.login-brand h1 {
+  margin: 0;
+  color: #15213a;
+  font-size: 20px;
+}
+
+.login-brand span {
+  color: #74809a;
+  font-size: 13px;
+}
+
+.login-icon {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #edf4ff;
+  color: #2f6fed;
+  font-size: 22px;
+}
+
+.login-card h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 30px;
+}
+
+.login-subtitle {
+  margin: 8px 0 26px;
+  color: #74809a;
+  font-size: 16px;
+}
+
+.login-field {
+  margin-bottom: 18px;
+}
+
+.login-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.login-field input {
+  width: 100%;
+  height: 48px;
+}

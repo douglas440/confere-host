@@ -1,12 +1,15 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FaChartPie,
   FaClipboardCheck,
   FaHistory,
   FaBoxes,
+  FaSignOutAlt,
 } from "react-icons/fa";
 
 function Sidebar() {
+  const navigate = useNavigate();
+
   const menuItems = [
     {
       nome: "Dashboard",
@@ -30,6 +33,14 @@ function Sidebar() {
     },
   ];
 
+
+  function handleLogout() {
+  localStorage.clear();
+  sessionStorage.clear();
+
+  window.location.href = "/login";
+}
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
@@ -47,18 +58,35 @@ function Sidebar() {
             key={item.rota}
             to={item.rota}
             className={({ isActive }) =>
-              isActive ? "sidebar-link active" : "sidebar-link"
+              isActive
+                ? "sidebar-link active"
+                : "sidebar-link"
             }
           >
-            <span className="sidebar-link-icon">{item.icone}</span>
+            <span className="sidebar-link-icon">
+              {item.icone}
+            </span>
+
             <span>{item.nome}</span>
           </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-footer">
-        <p>Sistema interno</p>
-        <span>Versão 1.0</span>
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={handleLogout}
+        >
+          <FaSignOutAlt />
+
+          <span>Sair do sistema</span>
+        </button>
+
+        <div className="sidebar-version">
+          <p>Sistema interno</p>
+          <span>Versão 1.0</span>
+        </div>
       </div>
     </aside>
   );
