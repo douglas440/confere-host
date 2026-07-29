@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 
@@ -20,99 +20,25 @@ const API_URL =
   "http://localhost:3001";
 
 const API_PRODUTOS = `${API_URL}/api/produtos`;
-const API_CONFERENCIAS = `${API_URL}/api/conferencias`;
-
-const CHAVE_CONFERENCIA = "confereHost:conferenciaAtual:v4";
-
-function carregarConferenciaSalva() {
-  try {
-    const conteudo = localStorage.getItem(CHAVE_CONFERENCIA);
-
-    if (!conteudo) {
-      return null;
-    }
-
-    const conferencia = JSON.parse(conteudo);
-
-    if (!Array.isArray(conferencia?.notas)) {
-      return null;
-    }
-
-    return conferencia;
-  } catch (error) {
-    console.error("Erro ao carregar conferência salva:", error);
-    localStorage.removeItem(CHAVE_CONFERENCIA);
-    return null;
-  }
-}
 
 function Conferencia() {
   const inputRef = useRef(null);
-  const recalculoInicialExecutado = useRef(false);
-
-  const conferenciaSalva = useMemo(
-    () => carregarConferenciaSalva(),
-    []
-  );
 
   const [arquivo, setArquivo] = useState(null);
-
-  const [notas, setNotas] = useState(
-    () => conferenciaSalva?.notas || []
-  );
+  const [notas, setNotas] = useState([]);
 
   const [pesquisa, setPesquisa] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  const [mensagem, setMensagem] = useState(
-    () => conferenciaSalva?.mensagem || ""
-  );
-
+  const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
 
   const [carregandoArquivo, setCarregandoArquivo] =
     useState(false);
 
   const [conferindo, setConferindo] = useState(false);
-
   const [conferenciaRealizada, setConferenciaRealizada] =
-    useState(
-      () => Boolean(conferenciaSalva?.conferenciaRealizada)
-    );
-
-  useEffect(() => {
-    if (notas.length === 0) {
-      localStorage.removeItem(CHAVE_CONFERENCIA);
-      return;
-    }
-
-    try {
-      localStorage.setItem(
-        CHAVE_CONFERENCIA,
-        JSON.stringify({
-          notas,
-          conferenciaRealizada,
-          mensagem,
-          salvoEm: new Date().toISOString(),
-        })
-      );
-    } catch (error) {
-      console.error("Erro ao salvar conferência:", error);
-    }
-  }, [notas, conferenciaRealizada, mensagem]);
-
-
-  useEffect(() => {
-    if (
-      recalculoInicialExecutado.current ||
-      !conferenciaSalva?.notas?.length
-    ) {
-      return;
-    }
-
-    recalculoInicialExecutado.current = true;
-    iniciarConferencia(conferenciaSalva.notas, false);
-  }, []);
+    useState(false);
 
   function limparTexto(valor) {
     if (valor === null || valor === undefined) {
@@ -195,33 +121,6 @@ function Conferencia() {
     );
 
     return diferenca < 0.0001;
-  }
-
-  function produtoAceitaQuantidadeDecimal(produto, item) {
-    const unidade = limparTexto(produto?.unidade)
-      .toUpperCase()
-      .replace(/\./g, "");
-
-    const descricao = limparTexto(
-      produto?.descricao || item?.descricao
-    ).toUpperCase();
-
-    const unidadesPesaveis = [
-      "KG", "KILO", "QUILO", "KILOGRAMA",
-      "KILOGRAMAS", "G", "GR", "GRAMA", "GRAMAS"
-    ];
-
-    if (unidadesPesaveis.includes(unidade)) {
-      return true;
-    }
-
-    return (
-      /(?:^|\s)(KG|KILO|QUILO|KILOGRAMA|GR|GRAMA)(?:\s|$)/.test(
-        descricao
-      ) ||
-      descricao.endsWith("KG") ||
-      descricao.includes(" KG ")
-    );
   }
 
   function lerRelatorio(linhas) {
@@ -381,10 +280,7 @@ function Conferencia() {
       event.target.value = "";
     }
   }
-  async function iniciarConferencia(
-    notasRecebidas = null,
-    salvarNoHistorico = true
-  ) {
+  async function iniciarConferencia(notasRecebidas = null) {
     const notasParaConferir = Array.isArray(notasRecebidas)
       ? notasRecebidas
       : notas;
@@ -455,7 +351,7 @@ function Conferencia() {
               quantidadeCaixas: null,
               status: "produto_nao_encontrado",
               observacao:
-                "Produto não cadastrado. Importe ou cadastre este código na tela de Produtos.",
+                "O código deste produto não foi encontrado no cadastro.",
             };
           }
 
@@ -474,7 +370,7 @@ function Conferencia() {
               quantidadeCaixas: null,
               status: "sem_fator",
               observacao:
-                "Produto sem fator. Cadastre ou corrija o fator deste produto na tela de Produtos.",
+                "Produto encontrado, mas ainda não possui fator cadastrado.",
             };
           }
 
@@ -487,86 +383,40 @@ function Conferencia() {
               ? quantidade / fator
               : null;
 
-          const aceitaDecimal =
-            produtoAceitaQuantidadeDecimal(produto, item);
-
-          const fatorUnitario = numerosSaoIguais(fator, 1);
-
+          /*
+           * A conferência deve validar se a quantidade comprada
+           * forma um número inteiro de volumes.
+           *
+           * Exemplos:
+           * quantidade 20 / fator 1 = 20 volumes -> correto
+           * quantidade 24 / fator 12 = 2 volumes -> correto
+           * quantidade 2 / fator 400 = 0,005 volume -> divergente
+           */
           const quantidadeCorreta =
             quantidadeValida &&
             quantidade > 0 &&
             Number.isFinite(quantidadeCaixas) &&
-            (
-              fatorUnitario ||
-              aceitaDecimal ||
-              numerosSaoIguais(
-                quantidadeCaixas,
-                Math.round(quantidadeCaixas)
-              )
+            numerosSaoIguais(
+              quantidadeCaixas,
+              Math.round(quantidadeCaixas)
             );
 
           if (!quantidadeCorreta) {
-            const fatorSuspeito =
-              Number.isFinite(quantidadeCaixas) &&
-              quantidadeCaixas > 0 &&
-              quantidadeCaixas < 1;
-
-            if (fatorSuspeito) {
-              return {
-                ...item,
-                produtoId: produto.id,
-                produtoEncontrado: true,
-                unidade: produto.unidade || "",
-                fator,
-                quantidadeCaixas,
-                status: "fator_suspeito",
-                observacao:
-                  `Fator pode estar cadastrado incorretamente. A quantidade ${formatarQuantidade(
-                    quantidade
-                  )} é menor que um volume do fator ${formatarQuantidade(
-                    fator
-                  )}, resultando em apenas ${formatarQuantidade(
-                    quantidadeCaixas
-                  )} volume(s). Revise o fator do produto.`,
-              };
-            }
-
             return {
               ...item,
               produtoId: produto.id,
               produtoEncontrado: true,
-              unidade: produto.unidade || "",
               fator,
               quantidadeCaixas,
-              status: "volume_incompleto",
+              status: "divergente",
               observacao:
-                `Quantidade não fecha um volume completo. ${formatarQuantidade(
+                `A quantidade ${formatarQuantidade(
                   quantidade
-                )} ÷ ${formatarQuantidade(
+                )} dividida pelo fator ${formatarQuantidade(
                   fator
-                )} = ${formatarQuantidade(
+                )} resulta em ${formatarQuantidade(
                   quantidadeCaixas
-                )} volume(s). Confira a quantidade lançada na nota.`,
-            };
-          }
-
-          if (fatorUnitario || aceitaDecimal) {
-            return {
-              ...item,
-              produtoId: produto.id,
-              produtoEncontrado: true,
-              unidade: produto.unidade || "",
-              fator,
-              quantidadeCaixas,
-              status: "correto",
-              observacao:
-                fatorUnitario
-                  ? `Fator 1: a quantidade ${formatarQuantidade(
-                      quantidade
-                    )} é válida, inclusive quando decimal.`
-                  : `Produto vendido por peso. A quantidade decimal de ${formatarQuantidade(
-                      quantidade
-                    )} é válida.`,
+                )} volume(s), sem fechar um volume completo.`,
             };
           }
 
@@ -574,7 +424,6 @@ function Conferencia() {
             ...item,
             produtoId: produto.id,
             produtoEncontrado: true,
-            unidade: produto.unidade || "",
             fator,
             quantidadeCaixas:
               Math.round(quantidadeCaixas),
@@ -592,8 +441,7 @@ function Conferencia() {
           (item) =>
             item.status === "produto_nao_encontrado" ||
             item.status === "sem_fator" ||
-            item.status === "volume_incompleto" ||
-            item.status === "fator_suspeito"
+            item.status === "divergente"
         );
 
         return {
@@ -619,30 +467,6 @@ function Conferencia() {
 
       setNotas(notasConferidas);
       setConferenciaRealizada(true);
-
-      if (salvarNoHistorico) {
-        try {
-          const respostaHistorico = await axios.post(
-            API_CONFERENCIAS,
-            { notas: notasConferidas }
-          );
-
-          console.log(
-            respostaHistorico.data?.mensagem ||
-              "Conferência salva no histórico."
-          );
-        } catch (erroHistorico) {
-          console.error(
-            "Conferência concluída, mas não salva no histórico:",
-            erroHistorico
-          );
-
-          setErro(
-            erroHistorico.response?.data?.mensagem ||
-              "A conferência foi concluída, mas não foi possível salvá-la no histórico do MySQL."
-          );
-        }
-      }
 
       if (totalErros === 0) {
         setMensagem(
@@ -684,12 +508,8 @@ function Conferencia() {
       (item) => item.status === "correto"
     ).length;
 
-    const volumesIncompletos = todosItens.filter(
-      (item) => item.status === "volume_incompleto"
-    ).length;
-
-    const fatoresSuspeitos = todosItens.filter(
-      (item) => item.status === "fator_suspeito"
+    const divergentes = todosItens.filter(
+      (item) => item.status === "divergente"
     ).length;
 
     const semFator = todosItens.filter(
@@ -702,18 +522,14 @@ function Conferencia() {
     ).length;
 
     const totalErros =
-      volumesIncompletos +
-      fatoresSuspeitos +
-      semFator +
-      naoEncontrados;
+      divergentes + semFator + naoEncontrados;
 
     return {
       totalNotas: notas.length,
       totalItens: todosItens.length,
       valorTotal,
       corretos,
-      volumesIncompletos,
-      fatoresSuspeitos,
+      divergentes,
       semFator,
       naoEncontrados,
       totalErros,
@@ -820,25 +636,17 @@ function Conferencia() {
       };
     }
 
-    if (status === "volume_incompleto") {
+    if (status === "divergente") {
       return {
-        texto: "Quantidade não fecha o volume",
+        texto: "Volume incompleto",
         icone: <FaTimesCircle />,
         estilo: styles.statusErro,
       };
     }
 
-    if (status === "fator_suspeito") {
-      return {
-        texto: "Revisar fator cadastrado",
-        icone: <FaExclamationTriangle />,
-        estilo: styles.statusAtencao,
-      };
-    }
-
     if (status === "sem_fator") {
       return {
-        texto: "Produto sem fator",
+        texto: "Sem fator",
         icone: <FaExclamationTriangle />,
         estilo: styles.statusAtencao,
       };
@@ -848,7 +656,7 @@ function Conferencia() {
       status === "produto_nao_encontrado"
     ) {
       return {
-        texto: "Produto não cadastrado",
+        texto: "Não cadastrado",
         icone: <FaTimesCircle />,
         estilo: styles.statusErro,
       };
@@ -866,15 +674,12 @@ function Conferencia() {
       return styles.linhaCorreta;
     }
 
-    if (
-      status === "sem_fator" ||
-      status === "fator_suspeito"
-    ) {
+    if (status === "sem_fator") {
       return styles.linhaAtencao;
     }
 
     if (
-      status === "volume_incompleto" ||
+      status === "divergente" ||
       status === "produto_nao_encontrado"
     ) {
       return styles.linhaErro;
@@ -884,8 +689,6 @@ function Conferencia() {
   }
 
   function novaImportacao() {
-    localStorage.removeItem(CHAVE_CONFERENCIA);
-
     setArquivo(null);
     setNotas([]);
     setPesquisa("");
@@ -1162,20 +965,16 @@ function Conferencia() {
                       Corretos
                     </option>
 
-                    <option value="volume_incompleto">
-                      Quantidade não fecha o volume
-                    </option>
-
-                    <option value="fator_suspeito">
-                      Revisar fator cadastrado
+                    <option value="divergente">
+                      Volume incompleto
                     </option>
 
                     <option value="sem_fator">
-                      Produto sem fator
+                      Sem fator
                     </option>
 
                     <option value="produto_nao_encontrado">
-                      Produto não cadastrado
+                      Não cadastrados
                     </option>
                   </select>
                 </div>
