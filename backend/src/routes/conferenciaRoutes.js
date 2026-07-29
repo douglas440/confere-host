@@ -1,0 +1,10 @@
+import express from "express";
+import { autenticar } from "../middlewares/autenticacao.js";
+import { buscarConferenciaPorId, criarConferencias, excluirConferencia, listarConferencias } from "../controllers/conferenciaController.js";
+const router = express.Router();
+router.use(autenticar);
+router.post("/", criarConferencias);
+router.get("/", listarConferencias);
+router.get("/:id", buscarConferenciaPorId);
+router.delete("/:id", excluirConferencia);
+export default router;
