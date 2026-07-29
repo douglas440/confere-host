@@ -12,7 +12,29 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 
-const API_URL = "http://localhost:3001/api/produtos";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL?.trim() ||
+  "http://localhost:3001";
+
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 70000,
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+const API_URL = "/produtos";
 
 function Produtos() {
   const [arquivo, setArquivo] = useState(null);
@@ -47,7 +69,7 @@ function Produtos() {
       setCarregandoProdutos(true);
       setErroProdutos("");
 
-      const resposta = await axios.get(API_URL, {
+      const resposta = await api.get(API_URL, {
         params: {
           busca: buscaAplicada,
           pagina,
@@ -129,7 +151,7 @@ function Produtos() {
       setErroImportacao("");
       setResultadoImportacao(null);
 
-      const resposta = await axios.post(
+      const resposta = await api.post(
         `${API_URL}/importar`,
         formData
       );
@@ -206,7 +228,7 @@ function Produtos() {
       setSalvandoFatores(true);
       setMensagem("");
 
-      const resposta = await axios.patch(
+      const resposta = await api.patch(
         `${API_URL}/fatores`,
         {
           alteracoes,
