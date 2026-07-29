@@ -15,11 +15,29 @@ import {
   FaUpload,
 } from "react-icons/fa";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL?.trim() ||
   "http://localhost:3001";
 
-const API_PRODUTOS = `${API_URL}/api/produtos`;
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 70000,
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+const API_PRODUTOS = "/produtos";
 
 function Conferencia() {
   const inputRef = useRef(null);
@@ -307,7 +325,7 @@ function Conferencia() {
         ),
       ];
 
-      const resposta = await axios.post(
+      const resposta = await api.post(
         `${API_PRODUTOS}/buscar-codigos`,
         {
           codigos: codigosUnicos,
